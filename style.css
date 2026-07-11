@@ -307,12 +307,19 @@ input[type="range"] {
   padding: 8px 22px;
   font-size: 10.5px;
   color: var(--text-faint);
-  display: flex; justify-content: space-between;
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 20px;
   flex-shrink: 0;
   background: #0e0f16;
 }
 #footer a { color: var(--text-faint); }
 #footer a:hover { color: var(--brass); }
+#footer .footer-credit {
+  color: var(--text-dim);
+  font-weight: 600;
+  white-space: nowrap;
+}
+#footer .footer-credit:hover { color: var(--brass); }
 
 /* ---------- responsive ---------- */
 
@@ -326,4 +333,5 @@ input[type="range"] {
   #detail { border-bottom: none; border-top: 1px solid var(--border); }
   .subtitle { display: none; }
   #canvas-wrap { min-height: 40vh; }
+  #footer span:not(.footer-credit) { display: none; }
 }

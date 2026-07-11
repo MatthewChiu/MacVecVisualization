@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Composite YCAC — Chord Embedding Explorer</title>
-<meta name="description" content="An interactive explorer for word2vec embeddings of chord vocabulary trained on the Yale-Classical Archives Corpus (YCAC), tonic-ranked.">
+<title>Composite YCAC — Macroharmony Embedding Explorer</title>
+<meta name="description" content="An interactive explorer for word2vec embeddings of macroharmony vocabulary trained on the Yale-Classical Archives Corpus (YCAC), tonic-ranked.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +45,7 @@
       </svg>
       <div class="brand-text">
         <h1>Composite YCAC <span class="dim">/ Tonic&#8209;Ranked</span></h1>
-        <p class="subtitle">32,916 chord vectors, embedded &amp; projected — click around the space</p>
+        <p class="subtitle">32,916 macroharmony vectors, embedded &amp; projected — click around the space</p>
       </div>
     </div>
     <div class="header-controls">
@@ -63,7 +63,7 @@
       <section class="panel-block">
         <label class="block-label" for="search-input">Search vocabulary</label>
         <input id="search-input" type="text" placeholder="e.g. 1,0,1,0,1,2 or paste a vector" autocomplete="off">
-        <p class="hint">Each chord is a 12-slot vector: how many times each scale degree (0 = tonic) sounds. Search matches that pattern as a substring.</p>
+        <p class="hint">Each macroharmony is a 12-slot vector: how many times each scale degree (0 = tonic) sounds. Search matches that pattern as a substring.</p>
       </section>
 
       <section class="panel-block">
@@ -75,18 +75,18 @@
 
       <section class="panel-block">
         <div class="block-label-row">
-          <span class="block-label">Chord size</span>
+          <span class="block-label">Macroharmony size</span>
           <button class="link-btn" id="size-clear">all</button>
         </div>
         <div class="chip-row" id="size-filter"></div>
         <div class="legend-bar" aria-hidden="true"></div>
-        <p class="hint">Point color follows chord size, teal (small) to violet (large).</p>
+        <p class="hint">Point color follows macroharmony size, teal (small) to violet (large).</p>
       </section>
 
       <section class="panel-block">
         <label class="block-label" for="count-slider">Minimum frequency <span id="count-value" class="mono-tag">1</span></label>
         <input id="count-slider" type="range" min="0" max="1000" value="0">
-        <p class="hint">How often this chord's exact voicing occurs in the corpus.</p>
+        <p class="hint">How often this macroharmony's exact voicing occurs in the corpus.</p>
       </section>
 
       <section class="panel-block stats-block">
@@ -100,7 +100,7 @@
       <div id="hover-tip" class="tip hidden"></div>
       <div id="loading">
         <div class="loading-mark"></div>
-        <p>Loading 32,916 chord vectors&hellip;</p>
+        <p>Loading 32,916 macroharmony vectors&hellip;</p>
       </div>
     </main>
 
@@ -113,7 +113,7 @@
       </div>
       <div id="detail-content" class="hidden">
         <div class="detail-head">
-          <span class="detail-eyebrow">Selected chord</span>
+          <span class="detail-eyebrow">Selected macroharmony</span>
           <button id="detail-close" class="icon-btn small" title="Close">&times;</button>
         </div>
         <svg id="pc-wheel" viewBox="0 0 200 200"></svg>
@@ -130,8 +130,8 @@
   </div>
 
   <footer id="footer">
-    <span>word2vec trained on chord sequences from the Yale&#8211;Classical Archives Corpus (YCAC), pitch classes ranked relative to local tonic.</span>
-    <a href="https://mattchiu.com" target="_blank" rel="noopener">mattchiu.com</a>
+    <a href="https://mattchiu.com" target="_blank" rel="noopener" class="footer-credit">Matt Chiu &middot; mattchiu.com</a>
+    <span>word2vec trained on macroharmony sequences from the Yale&#8211;Classical Archives Corpus (YCAC), pitch classes ranked relative to local tonic.</span>
   </footer>
 
 </div>

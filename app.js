@@ -14,7 +14,7 @@ const SPATIAL_SCALE = 62;
 
 let N = 0;
 let pc = [];        // array of arrays, pitch-class-count vectors (length 12 each)
-let sizeArr = [];   // chord "size" = number of nonzero pitch classes
+let sizeArr = [];   // macroharmony "size" = number of nonzero pitch classes
 let totalArr = [];  // sum of the pc vector (note count incl. doublings)
 let rootArr = [];   // weight at index 0 (the tonic)
 let countArr = [];  // corpus frequency
@@ -67,22 +67,6 @@ function sizeColor(sz) {
   return c;
 }
 
-let countLogMax = 1;
-function countColor(count) {
-  const t = THREE.MathUtils.clamp(Math.log(count + 1) / countLogMax, 0, 1);
-  const c = new THREE.Color();
-  c.lerpColors(new THREE.Color(0x2c3a44), TEAL, t);
-  c.lerpColors(c, BRASS, t * t);
-  return c;
-}
-
-function rootColor(rootVal) {
-  const t = THREE.MathUtils.clamp(rootVal / 3, 0, 1);
-  const c = new THREE.Color();
-  c.lerpColors(new THREE.Color(0x3a3448), VIOLET, t);
-  return c;
-}
-
 /* ----------------------------------------------------------------------
    Filter state
 ------------------------------------------------------------------------ */
@@ -91,7 +75,7 @@ const filterState = {
   sizeSet: null,     // null = all, else Set of ints
   minCount: 0,
   maxCount: Infinity,
-  minRoot: 0,
+  diatonicOnly: false,
   query: "",
 };
 
@@ -99,13 +83,57 @@ function matchesFilter(i) {
   if (filterState.sizeSet && !filterState.sizeSet.has(sizeArr[i])) return false;
   if (countArr[i] < filterState.minCount) return false;
   if (countArr[i] > filterState.maxCount) return false;
-  if (rootArr[i] < filterState.minRoot) return false;
+  if (filterState.diatonicOnly && !isDiatonicScale[i]) return false;
   if (filterState.query) {
     const label = pc[i].join(",");
     if (!label.includes(filterState.query)) return false;
   }
   return true;
 }
+
+/* ----------------------------------------------------------------------
+   Diatonic scale detection
+
+   Tonic-ranking collapses every transposition of a given mode onto one
+   vector (C major, G major, D major... all reduce to the same Ionian
+   pattern), but the seven diatonic modes themselves are NOT the same
+   pattern relative to their own tonic — each starts the W-W-H-W-W-W-H
+   sequence from a different scale degree. These are the seven resulting
+   sets of active scale-degree positions (0 = tonic).
+------------------------------------------------------------------------ */
+
+const DIATONIC_MODE_SETS = [
+  [0, 2, 4, 5, 7, 9, 11],  // Ionian
+  [0, 2, 3, 5, 7, 9, 10],  // Dorian
+  [0, 1, 3, 5, 7, 8, 10],  // Phrygian
+  [0, 2, 4, 6, 7, 9, 11],  // Lydian
+  [0, 2, 4, 5, 7, 9, 10],  // Mixolydian
+  [0, 2, 3, 5, 7, 8, 10],  // Aeolian
+  [0, 1, 3, 5, 6, 8, 10],  // Locrian
+].map((arr) => new Set(arr));
+
+function activePositions(vec) {
+  const s = new Set();
+  for (let k = 0; k < 12; k++) if (vec[k] > 0) s.add(k);
+  return s;
+}
+function setsEqual(a, b) {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+
+let isDiatonicScale = null; // Uint8Array, built once data is loaded
+
+function computeDiatonicFlags() {
+  isDiatonicScale = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    const active = activePositions(pc[i]);
+    isDiatonicScale[i] = DIATONIC_MODE_SETS.some((s) => setsEqual(active, s)) ? 1 : 0;
+  }
+}
+
+
 
 /* ----------------------------------------------------------------------
    Three.js scene
@@ -252,12 +280,13 @@ function pickAt(clientX, clientY) {
   raycaster.params.Points.threshold = 1.6 * (camera.position.length() / 170);
   const hits = raycaster.intersectObject(points);
   if (hits.length === 0) return -1;
-  // prefer the visible (matching) point among close hits
+  // only ever pick a point that currently passes the filter — points hidden
+  // by the sidebar filters should be inert to both hover and click
   hits.sort((a, b) => a.distanceToRay - b.distanceToRay);
   for (const h of hits.slice(0, 8)) {
     if (matchesFilter(h.index)) return h.index;
   }
-  return hits[0].index;
+  return -1;
 }
 
 const tip = document.getElementById("hover-tip");
@@ -489,11 +518,11 @@ function updateStats() {
    Collections (curated preset views)
 ------------------------------------------------------------------------ */
 
-function setPreset({ sizeSet, minCount, maxCount, minRoot, query }) {
+function setPreset({ sizeSet, minCount, maxCount, diatonicOnly, query }) {
   filterState.sizeSet = sizeSet ?? null;
   filterState.minCount = minCount ?? 0;
   filterState.maxCount = maxCount ?? Infinity;
-  filterState.minRoot = minRoot ?? 0;
+  filterState.diatonicOnly = diatonicOnly ?? false;
   filterState.query = query ?? "";
   searchInput.value = filterState.query;
   countSlider.value = 0;
@@ -507,12 +536,9 @@ function buildCollections() {
   const top300Threshold = sortedCounts[Math.min(299, sortedCounts.length - 1)];
 
   const collections = [
-    { label: "All chords", fn: () => setPreset({}) },
+    { label: "All macroharmonies", fn: () => setPreset({}) },
     { label: "Most common", fn: () => setPreset({ minCount: top300Threshold }) },
-    { label: "Hapax voicings", fn: () => setPreset({ minCount: 1, maxCount: 1 }) },
-    { label: "Triads", fn: () => setPreset({ sizeSet: new Set([3]) }) },
-    { label: "Full chromatic", fn: () => setPreset({ sizeSet: new Set([12]) }) },
-    { label: "Tonic-doubled", fn: () => setPreset({ minRoot: 2 }) },
+    { label: "Diatonic scales", fn: () => setPreset({ diatonicOnly: true }) },
   ];
 
   const wrap = document.getElementById("collections");
@@ -531,10 +557,10 @@ function buildCollections() {
 
 async function boot() {
   await loadAll();
+  computeDiatonicFlags();
 
   maxCountObserved = 1;
   for (let i = 0; i < countArr.length; i++) if (countArr[i] > maxCountObserved) maxCountObserved = countArr[i];
-  countLogMax = Math.log(maxCountObserved + 1);
 
   buildPointCloud();
   applyLayout(currentLayout);
