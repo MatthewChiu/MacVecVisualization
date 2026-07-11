@@ -79,21 +79,14 @@
           <button class="link-btn" id="size-clear">all</button>
         </div>
         <div class="chip-row" id="size-filter"></div>
+        <div class="legend-bar" aria-hidden="true"></div>
+        <p class="hint">Point color follows chord size, teal (small) to violet (large).</p>
       </section>
 
       <section class="panel-block">
         <label class="block-label" for="count-slider">Minimum frequency <span id="count-value" class="mono-tag">1</span></label>
         <input id="count-slider" type="range" min="0" max="1000" value="0">
         <p class="hint">How often this chord's exact voicing occurs in the corpus.</p>
-      </section>
-
-      <section class="panel-block">
-        <label class="block-label" for="color-select">Color by</label>
-        <select id="color-select">
-          <option value="size">Chord size</option>
-          <option value="count">Frequency</option>
-          <option value="root">Tonic weight</option>
-        </select>
       </section>
 
       <section class="panel-block stats-block">

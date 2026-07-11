@@ -184,6 +184,13 @@ html, body {
 .chip.active { background: var(--brass); border-color: var(--brass); color: #191309; font-weight: 700; }
 .chip.collection { font-family: var(--font-ui); font-size: 11.5px; }
 
+.legend-bar {
+  height: 6px;
+  border-radius: 3px;
+  margin-top: 10px;
+  background: linear-gradient(90deg, var(--teal), var(--brass), var(--violet));
+}
+
 input[type="range"] {
   width: 100%;
   accent-color: var(--brass);

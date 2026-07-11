@@ -189,15 +189,12 @@ function applyLayout(layout) {
   positionAttr.needsUpdate = true;
 }
 
-let colorMode = "size";
+const colorMode = "size";
 function applyColors() {
   const arr = colorAttr.array;
   const aArr = alphaAttr.array;
   for (let i = 0; i < N; i++) {
-    let c;
-    if (colorMode === "size") c = sizeColor(sizeArr[i]);
-    else if (colorMode === "count") c = countColor(countArr[i]);
-    else c = rootColor(rootArr[i]);
+    let c = sizeColor(sizeArr[i]);
 
     const match = matchesFilter(i);
     if (!match) {
@@ -475,12 +472,6 @@ countSlider.addEventListener("input", () => {
   refresh();
 });
 
-const colorSelect = document.getElementById("color-select");
-colorSelect.addEventListener("change", () => {
-  colorMode = colorSelect.value;
-  refresh();
-});
-
 function refresh() {
   applyColors();
   if (selectedIdx !== -1) applyHighlight();
@@ -547,7 +538,6 @@ async function boot() {
 
   buildPointCloud();
   applyLayout(currentLayout);
-  colorMode = colorSelect.value;
   applyColors();
   buildCollections();
   updateStats();
