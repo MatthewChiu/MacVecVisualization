@@ -3,7 +3,7 @@
 A companion website for the article, "Studying Scales and Macroharmonies in the Yale Classical Archives Corpus"
 
 A self-contained, static web app for exploring the `compositeYCACModel_TonicRanked` word2vec
-embeddings: 32,916 chord vectors (32-dim), each keyed by a 12-dimensional tonic-ranked pitch-class vector tonic-ranked. Vectors represent absent PCs as 0, present PCs are 1, and the tonic (determined by the IQ algorithm), e.g. C major is [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]. Data is derived from 14 composers from the Yale–Classical Archives Corpus.
+embeddings: 32,916 chord vectors (32-dim), each keyed by a 12-dimensional tonic-ranked pitch-class vector tonic-ranked. Vectors represent absent PCs as 0, present PCs are 1, and the tonic (determined by a correlation with the Krumhansl-Kessler key profile), e.g. C major is [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]. Data is derived from 14 composers from the Yale–Classical Archives Corpus.
 
 It works like the TensorFlow Embedding Projector: a rotatable/pannable point cloud you can
 search, filter, and click into for nearest neighbors — but everything runs client-side, with
