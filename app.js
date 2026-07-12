@@ -454,23 +454,25 @@ document.getElementById("reset-view").addEventListener("click", () => {
    UI: sidebar filters
 ------------------------------------------------------------------------ */
 
-const SIZE_RANGE = [2,3,4,5,6,7,8,9,10,11,12];
 const sizeFilterEl = document.getElementById("size-filter");
-SIZE_RANGE.forEach((sz) => {
-  const chip = document.createElement("button");
-  chip.className = "chip";
-  chip.textContent = sz;
-  chip.dataset.size = sz;
-  chip.addEventListener("click", () => {
-    if (!filterState.sizeSet) filterState.sizeSet = new Set();
-    if (filterState.sizeSet.has(sz)) filterState.sizeSet.delete(sz);
-    else filterState.sizeSet.add(sz);
-    if (filterState.sizeSet.size === 0) filterState.sizeSet = null;
-    syncSizeChips();
-    refresh();
+function buildSizeChips() {
+  const distinct = Array.from(new Set(sizeArr)).sort((a, b) => a - b);
+  distinct.forEach((sz) => {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.textContent = sz;
+    chip.dataset.size = sz;
+    chip.addEventListener("click", () => {
+      if (!filterState.sizeSet) filterState.sizeSet = new Set();
+      if (filterState.sizeSet.has(sz)) filterState.sizeSet.delete(sz);
+      else filterState.sizeSet.add(sz);
+      if (filterState.sizeSet.size === 0) filterState.sizeSet = null;
+      syncSizeChips();
+      refresh();
+    });
+    sizeFilterEl.appendChild(chip);
   });
-  sizeFilterEl.appendChild(chip);
-});
+}
 function syncSizeChips() {
   sizeFilterEl.querySelectorAll(".chip").forEach((chip) => {
     const sz = Number(chip.dataset.size);
@@ -558,6 +560,9 @@ function buildCollections() {
 async function boot() {
   await loadAll();
   computeDiatonicFlags();
+  buildSizeChips();
+  document.getElementById("subtitle").textContent =
+    `${N.toLocaleString()} macroharmony vectors, embedded & projected — click around the space`;
 
   maxCountObserved = 1;
   for (let i = 0; i < countArr.length; i++) if (countArr[i] > maxCountObserved) maxCountObserved = countArr[i];
