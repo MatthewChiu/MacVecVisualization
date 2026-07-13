@@ -191,6 +191,63 @@ html, body {
   background: linear-gradient(90deg, var(--teal), var(--brass), var(--violet));
 }
 
+.path-toggle {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.path-toggle:hover { border-color: var(--brass-soft); color: var(--text); }
+.path-toggle.active {
+  background: #fff;
+  border-color: #fff;
+  color: #14151f;
+  font-weight: 700;
+}
+
+.path-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  max-height: 130px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.path-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  transition: background 0.15s;
+}
+.path-item:hover { background: var(--panel-2); }
+.path-step {
+  flex-shrink: 0;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 9px;
+  display: flex; align-items: center; justify-content: center;
+}
+.path-vec { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#path-count { margin-top: 6px; }
+
 input[type="range"] {
   width: 100%;
   accent-color: var(--brass);

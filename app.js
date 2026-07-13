@@ -218,6 +218,7 @@ function applyLayout(layout) {
 }
 
 const colorMode = "size";
+const PATH_COLOR = new THREE.Color(0xffffff);
 function applyColors() {
   const arr = colorAttr.array;
   const aArr = alphaAttr.array;
@@ -230,6 +231,10 @@ function applyColors() {
       aArr[i] = 0.045;
     } else {
       aArr[i] = 0.82;
+    }
+    if (pathSet.has(i)) {
+      c = PATH_COLOR;
+      aArr[i] = 1.0;
     }
     arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b;
   }
@@ -313,7 +318,7 @@ canvas.addEventListener("pointermove", (e) => {
 canvas.addEventListener("click", (e) => {
   if (dragDistance > 4) return; // was a drag/orbit, not a click
   const idx = pickAt(e.clientX, e.clientY);
-  if (idx !== -1) selectPoint(idx);
+  if (idx !== -1) visitPoint(idx);
 });
 
 /* ----------------------------------------------------------------------
@@ -393,7 +398,7 @@ function selectPoint(idx) {
     li.innerHTML = `<span class="neighbor-bar" style="width:${barWidth}px"></span>
                      <span class="neighbor-vec">[${pc[ni].join(",")}]</span>
                      <span class="neighbor-sim">${sim.toFixed(3)}</span>`;
-    li.addEventListener("click", () => { selectPoint(ni); focusCameraOn(ni); });
+    li.addEventListener("click", () => { visitPoint(ni); });
     list.appendChild(li);
   });
 
@@ -426,6 +431,95 @@ function focusCameraOn(idx) {
 }
 
 /* ----------------------------------------------------------------------
+   Macroharmonic path
+
+   When path mode is on, every click (canvas or neighbor-list) both selects
+   the point as usual AND appends it to an ordered path, drawn as a line
+   through the current projection. Works in either PCA or t-SNE layout;
+   the line is rebuilt from current positions whenever the layout changes.
+------------------------------------------------------------------------ */
+
+let pathMode = false;
+let pathIndices = [];
+let pathSet = new Set();
+let pathLine = null;
+
+const pathLineMaterial = new THREE.LineBasicMaterial({
+  color: 0xffffff,
+  transparent: true,
+  opacity: 0.85,
+  depthTest: false,
+});
+
+function updatePathLine() {
+  if (pathLine) {
+    scene.remove(pathLine);
+    pathLine.geometry.dispose();
+    pathLine = null;
+  }
+  if (pathIndices.length < 2) return;
+  const positions = new Float32Array(pathIndices.length * 3);
+  pathIndices.forEach((idx, k) => {
+    positions[k * 3 + 0] = positionAttr.array[idx * 3 + 0];
+    positions[k * 3 + 1] = positionAttr.array[idx * 3 + 1];
+    positions[k * 3 + 2] = positionAttr.array[idx * 3 + 2];
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  pathLine = new THREE.Line(geo, pathLineMaterial);
+  pathLine.renderOrder = 1;
+  scene.add(pathLine);
+}
+
+function updatePathList() {
+  const listEl = document.getElementById("path-list");
+  const countEl = document.getElementById("path-count");
+  listEl.innerHTML = "";
+  pathIndices.forEach((idx, k) => {
+    const li = document.createElement("li");
+    li.className = "path-item";
+    li.innerHTML = `<span class="path-step">${k + 1}</span><span class="path-vec">[${pc[idx].join(",")}]</span>`;
+    li.addEventListener("click", () => { selectPoint(idx); focusCameraOn(idx); });
+    listEl.appendChild(li);
+  });
+  const segments = Math.max(0, pathIndices.length - 1);
+  countEl.textContent = pathIndices.length === 0
+    ? "no nodes yet"
+    : `${pathIndices.length} node${pathIndices.length === 1 ? "" : "s"} · ${segments} segment${segments === 1 ? "" : "s"}`;
+}
+
+function addToPath(idx) {
+  pathIndices.push(idx);
+  pathSet.add(idx);
+  updatePathLine();
+  updatePathList();
+  applyColors();
+  if (highlightIdxs.size) applyHighlight();
+}
+
+function clearPath() {
+  pathIndices = [];
+  pathSet = new Set();
+  updatePathLine();
+  updatePathList();
+  applyColors();
+  if (highlightIdxs.size) applyHighlight();
+}
+
+function visitPoint(idx) {
+  if (pathMode) addToPath(idx);
+  selectPoint(idx);
+}
+
+const pathToggleBtn = document.getElementById("path-toggle");
+pathToggleBtn.addEventListener("click", () => {
+  pathMode = !pathMode;
+  pathToggleBtn.classList.toggle("active", pathMode);
+  pathToggleBtn.textContent = pathMode ? "Building path — click nodes to add" : "Click to build a path";
+});
+document.getElementById("path-clear").addEventListener("click", clearPath);
+
+/* ----------------------------------------------------------------------
    UI: layout toggle
 ------------------------------------------------------------------------ */
 
@@ -437,6 +531,7 @@ document.querySelectorAll("#layout-toggle .seg-btn").forEach((btn) => {
     btn.setAttribute("aria-selected", "true");
     currentLayout = btn.dataset.layout;
     applyLayout(currentLayout);
+    updatePathLine();
     controls.enableRotate = currentLayout === "pca";
     if (currentLayout === "tsne") {
       camera.position.set(controls.target.x, controls.target.y, 140);
