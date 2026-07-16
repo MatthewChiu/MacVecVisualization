@@ -219,6 +219,7 @@ function applyLayout(layout) {
 
 const colorMode = "size";
 const PATH_COLOR = new THREE.Color(0xffffff);
+const COMPARE_COLOR = new THREE.Color(0xc4664f);
 function applyColors() {
   const arr = colorAttr.array;
   const aArr = alphaAttr.array;
@@ -234,6 +235,10 @@ function applyColors() {
     }
     if (pathSet.has(i)) {
       c = PATH_COLOR;
+      aArr[i] = 1.0;
+    }
+    if (i === compareA || i === compareB) {
+      c = COMPARE_COLOR;
       aArr[i] = 1.0;
     }
     arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b;
@@ -431,6 +436,16 @@ function focusCameraOn(idx) {
 }
 
 /* ----------------------------------------------------------------------
+   Click mode
+
+   Only one "click does something extra" mode is active at a time: normal
+   selection, path-building, or comparing two nodes. Toggling one off
+   again returns to plain selection.
+------------------------------------------------------------------------ */
+
+let clickMode = "none"; // "none" | "path" | "compare"
+
+/* ----------------------------------------------------------------------
    Macroharmonic path
 
    When path mode is on, every click (canvas or neighbor-list) both selects
@@ -439,7 +454,6 @@ function focusCameraOn(idx) {
    the line is rebuilt from current positions whenever the layout changes.
 ------------------------------------------------------------------------ */
 
-let pathMode = false;
 let pathIndices = [];
 let pathSet = new Set();
 let pathLine = null;
@@ -506,18 +520,151 @@ function clearPath() {
   if (highlightIdxs.size) applyHighlight();
 }
 
-function visitPoint(idx) {
-  if (pathMode) addToPath(idx);
-  selectPoint(idx);
-}
-
 const pathToggleBtn = document.getElementById("path-toggle");
 pathToggleBtn.addEventListener("click", () => {
-  pathMode = !pathMode;
-  pathToggleBtn.classList.toggle("active", pathMode);
-  pathToggleBtn.textContent = pathMode ? "Building path — click nodes to add" : "Click to build a path";
+  setClickMode(clickMode === "path" ? "none" : "path");
 });
 document.getElementById("path-clear").addEventListener("click", clearPath);
+
+/* ----------------------------------------------------------------------
+   Compare macroharmonies
+
+   When compare mode is on, the first click sets node A, the second sets
+   node B and computes the distance between them three ways: cosine
+   similarity and Euclidean distance over the real 32-dim embedding, plus
+   the on-screen distance in whichever projection is currently shown. A
+   third click starts a fresh pair. A line is drawn between A and B.
+------------------------------------------------------------------------ */
+
+let compareA = null;
+let compareB = null;
+let compareLine = null;
+
+const compareLineMaterial = new THREE.LineBasicMaterial({
+  color: 0xc4664f,
+  transparent: true,
+  opacity: 0.9,
+  depthTest: false,
+});
+
+function compareSet() {
+  const s = new Set();
+  if (compareA !== null) s.add(compareA);
+  if (compareB !== null) s.add(compareB);
+  return s;
+}
+
+function updateCompareLine() {
+  if (compareLine) {
+    scene.remove(compareLine);
+    compareLine.geometry.dispose();
+    compareLine = null;
+  }
+  if (compareA === null || compareB === null) return;
+  const positions = new Float32Array(6);
+  [compareA, compareB].forEach((idx, k) => {
+    positions[k * 3 + 0] = positionAttr.array[idx * 3 + 0];
+    positions[k * 3 + 1] = positionAttr.array[idx * 3 + 1];
+    positions[k * 3 + 2] = positionAttr.array[idx * 3 + 2];
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  compareLine = new THREE.Line(geo, compareLineMaterial);
+  compareLine.renderOrder = 1;
+  scene.add(compareLine);
+}
+
+function cosineSim(i, j) {
+  let dot = 0;
+  const offI = i * DIM, offJ = j * DIM;
+  for (let d = 0; d < DIM; d++) dot += vectors[offI + d] * vectors[offJ + d];
+  return dot / (vecNorms[i] * vecNorms[j] + 1e-9);
+}
+
+function euclideanDist(i, j) {
+  let s = 0;
+  const offI = i * DIM, offJ = j * DIM;
+  for (let d = 0; d < DIM; d++) { const diff = vectors[offI + d] - vectors[offJ + d]; s += diff * diff; }
+  return Math.sqrt(s);
+}
+
+function projectedDist(i, j) {
+  const dx = positionAttr.array[i * 3] - positionAttr.array[j * 3];
+  const dy = positionAttr.array[i * 3 + 1] - positionAttr.array[j * 3 + 1];
+  const dz = positionAttr.array[i * 3 + 2] - positionAttr.array[j * 3 + 2];
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function updateCompareUI() {
+  const resultEl = document.getElementById("compare-result");
+  const hintEl = document.getElementById("compare-hint");
+  if (compareA === null) {
+    resultEl.classList.add("hidden");
+    hintEl.textContent = "Turn this on, then click two nodes to measure the distance between them.";
+    return;
+  }
+  resultEl.classList.remove("hidden");
+  document.getElementById("compare-a-vec").textContent = `[${pc[compareA].join(",")}]`;
+  if (compareB === null) {
+    document.getElementById("compare-b-vec").textContent = "click another node…";
+    document.getElementById("compare-cosine").textContent = "—";
+    document.getElementById("compare-euclidean").textContent = "—";
+    document.getElementById("compare-projected").textContent = "—";
+    hintEl.textContent = "One node picked — click another to compare.";
+    return;
+  }
+  document.getElementById("compare-b-vec").textContent = `[${pc[compareB].join(",")}]`;
+  document.getElementById("compare-cosine").textContent = cosineSim(compareA, compareB).toFixed(4);
+  document.getElementById("compare-euclidean").textContent = euclideanDist(compareA, compareB).toFixed(3);
+  document.getElementById("compare-projected").textContent = projectedDist(compareA, compareB).toFixed(2);
+  hintEl.textContent = "Click any node to start a new pair.";
+}
+
+function addToCompare(idx) {
+  if (compareA === null || (compareA !== null && compareB !== null)) {
+    compareA = idx;
+    compareB = null;
+  } else if (idx !== compareA) {
+    compareB = idx;
+  }
+  updateCompareLine();
+  updateCompareUI();
+  applyColors();
+  if (highlightIdxs.size) applyHighlight();
+}
+
+function clearCompare() {
+  compareA = null;
+  compareB = null;
+  updateCompareLine();
+  updateCompareUI();
+  applyColors();
+  if (highlightIdxs.size) applyHighlight();
+}
+
+const compareToggleBtn = document.getElementById("compare-toggle");
+compareToggleBtn.addEventListener("click", () => {
+  setClickMode(clickMode === "compare" ? "none" : "compare");
+});
+document.getElementById("compare-clear").addEventListener("click", clearCompare);
+
+/* ----------------------------------------------------------------------
+   Click mode switching (shared by path + compare toggles)
+------------------------------------------------------------------------ */
+
+function setClickMode(mode) {
+  clickMode = mode;
+  pathToggleBtn.classList.toggle("active", mode === "path");
+  pathToggleBtn.textContent = mode === "path" ? "Building path — click nodes to add" : "Click to build a path";
+  compareToggleBtn.classList.toggle("active", mode === "compare");
+  compareToggleBtn.textContent = mode === "compare" ? "Comparing — click two nodes" : "Click to compare two nodes";
+}
+
+function visitPoint(idx) {
+  if (clickMode === "path") addToPath(idx);
+  else if (clickMode === "compare") addToCompare(idx);
+  selectPoint(idx);
+}
 
 /* ----------------------------------------------------------------------
    UI: layout toggle
@@ -532,6 +679,8 @@ document.querySelectorAll("#layout-toggle .seg-btn").forEach((btn) => {
     currentLayout = btn.dataset.layout;
     applyLayout(currentLayout);
     updatePathLine();
+    updateCompareLine();
+    if (compareA !== null && compareB !== null) updateCompareUI();
     controls.enableRotate = currentLayout === "pca";
     if (currentLayout === "tsne") {
       camera.position.set(controls.target.x, controls.target.y, 140);

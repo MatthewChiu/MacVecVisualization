@@ -78,6 +78,24 @@
 
       <section class="panel-block">
         <div class="block-label-row">
+          <span class="block-label">Compare macroharmonies</span>
+          <button class="link-btn" id="compare-clear">clear</button>
+        </div>
+        <button id="compare-toggle" class="path-toggle">Click to compare two nodes</button>
+        <div id="compare-result" class="compare-result hidden">
+          <div class="compare-slot"><span class="compare-tag compare-tag-a">A</span><span id="compare-a-vec" class="mono-tag"></span></div>
+          <div class="compare-slot"><span class="compare-tag compare-tag-b">B</span><span id="compare-b-vec" class="mono-tag"></span></div>
+          <div class="compare-stats">
+            <div class="meta-item"><span class="meta-label">Cosine similarity</span><span id="compare-cosine" class="mono-tag"></span></div>
+            <div class="meta-item"><span class="meta-label">Euclidean distance</span><span id="compare-euclidean" class="mono-tag"></span></div>
+            <div class="meta-item"><span class="meta-label">Projected distance</span><span id="compare-projected" class="mono-tag"></span></div>
+          </div>
+        </div>
+        <p class="hint" id="compare-hint">Turn this on, then click two nodes to measure the distance between them.</p>
+      </section>
+
+      <section class="panel-block">
+        <div class="block-label-row">
           <span class="block-label">Collections</span>
         </div>
         <div class="chip-row" id="collections"></div>
